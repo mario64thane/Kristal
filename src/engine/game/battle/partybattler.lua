@@ -54,7 +54,7 @@ function PartyBattler:init(chara, x, y)
     self.darken_fx = self:addFX(RecolorFX())
 
     self.target_sprite = Sprite("ui/battle/chartarget")
-    self.target_sprite:play(10/30)
+    self.target_sprite:play(10 / 30)
     self:addChild(self.target_sprite)
 
     self.targeted = false
@@ -101,38 +101,27 @@ function PartyBattler:calculateDamageSimple(amount)
 end
 
 --- Gets the damage reduction multiplier for damage of a particular element
----@param element number
+---@param element string
 ---@return integer multiplier
 function PartyBattler:getElementReduction(element)
-    -- TODO: this
-
-    if (element == 0) then return 1 end
-
-    -- dummy values since we don't have elements
-    local armor_elements = {
-        {element = 0, element_reduce_amount = 0},
-        {element = 0, element_reduce_amount = 0}
-    }
-
     local reduction = 1
     for i = 1, 2 do
-        local item = armor_elements[i]
-        if (item.element ~= 0) then
-            if (item.element == element)                              then reduction = reduction - item.element_reduce_amount end
-            if (item.element == 9 and (element == 2 or element == 8)) then reduction = reduction - item.element_reduce_amount end
-            if (item.element == 10)                                   then reduction = reduction - item.element_reduce_amount end
+        local item = self.chara:getArmor(i)
+        if (item.element ~= "") then
+            if (item.element == element) then reduction = reduction - item.element_reduce_amount end
         end
     end
     return math.max(0.25, reduction)
 end
 
 ---@param amount    number  The damage of the incoming hit
+---@param element?  string  The element used for element reduction
 ---@param exact?    boolean Whether the damage should be treated as exact damage instead of applying defense and element modifiers
 ---@param color?    table   The color of the damage number
 ---@param options?  table   A table defining additional properties to control the way damage is taken
 ---|"all"   # Whether the damage being taken comes from a strike targeting the whole party
 ---|"swoon" # Whether the damage should swoon the battler instead of downing them
-function PartyBattler:hurt(amount, exact, color, options)
+function PartyBattler:hurt(amount, element, exact, color, options)
     options = options or {}
 
     local swoon = options["swoon"]
@@ -144,8 +133,7 @@ function PartyBattler:hurt(amount, exact, color, options)
             if self.defending then
                 amount = math.ceil((2 * amount) / 3)
             end
-            -- we don't have elements right now
-            local element = 0
+            element = element or "" -- Default to empty string
             amount = math.ceil((amount * self:getElementReduction(element)))
         end
 
@@ -154,8 +142,7 @@ function PartyBattler:hurt(amount, exact, color, options)
         -- We're targeting everyone.
         if not exact then
             amount = self:calculateDamage(amount)
-            -- we don't have elements right now
-            local element = 0
+            element = element or "" -- Default to empty string
             amount = math.ceil((amount * self:getElementReduction(element)))
 
             if self.defending then
@@ -179,14 +166,14 @@ function PartyBattler:hurt(amount, exact, color, options)
         self.sleeping = false
         self.hurting = true
         self:toggleOverlay(true)
-        self.overlay_sprite:setAnimation("battle/hurt", function()
+        self.overlay_sprite:setAnimation("battle/hurt", function ()
             if self.hurting then
                 self.hurting = false
                 self:toggleOverlay(false)
             end
         end)
         if not self.overlay_sprite.anim_frames then -- backup if the ID doesn't animate, so it doesn't get stuck with the hurt animation
-            Game.battle.timer:after(0.5, function()
+            Game.battle.timer:after(0.5, function ()
                 if self.hurting then
                     self.hurting = false
                     self:toggleOverlay(false)
@@ -289,7 +276,8 @@ end
 ---@param layer?    number
 ---@return FlashFade
 function PartyBattler:flash(sprite, offset_x, offset_y, layer)
-    return super.flash(self, sprite or self.overlay_sprite.visible and self.overlay_sprite or self.sprite, offset_x, offset_y, layer)
+    return super.flash(self, sprite or self.overlay_sprite.visible and self.overlay_sprite or self.sprite, offset_x,
+        offset_y, layer)
 end
 
 --- Heals the Battler by `amount` health and does healing effects
@@ -313,7 +301,7 @@ function PartyBattler:heal(amount, sparkle_color, show_up)
         if show_up and was_down ~= self.is_down then
             self:statusMessage("msg", "up", nil, nil, 1)
         else
-            self:statusMessage("heal", amount, {0, 1, 0}, nil, show_up and 1 or 8)
+            self:statusMessage("heal", amount, { 0, 1, 0 }, nil, show_up and 1 or 8)
         end
     end
 
@@ -340,7 +328,7 @@ end
 ---@param ... unknown
 ---@return DamageNumber
 function PartyBattler:statusMessage(...)
-    local message = super.statusMessage(self, 0, self.height/2, ...)
+    local message = super.statusMessage(self, 0, self.height / 2, ...)
     message.y = message.y - 4
     return message
 end
@@ -402,10 +390,9 @@ end
 ---@param loop?     boolean
 ---@param after?    fun(ActorSprite)
 function PartyBattler:setActSprite(sprite, ox, oy, speed, loop, after)
-
     self:setCustomSprite(sprite, ox, oy, speed, loop, after)
 
-    local x = self.x - (self.actor:getWidth()/2 - ox) * 2
+    local x = self.x - (self.actor:getWidth() / 2 - ox) * 2
     local y = self.y - (self.actor:getHeight() - oy) * 2
     local flash = FlashFade(sprite, x, y)
     flash:setOrigin(0, 0)
@@ -471,7 +458,7 @@ function PartyBattler:update()
         end
     end
 
-    self.darken_fx.color = {1 - (self.darken_timer / 30), 1 - (self.darken_timer / 30), 1 - (self.darken_timer / 30)}
+    self.darken_fx.color = { 1 - (self.darken_timer / 30), 1 - (self.darken_timer / 30), 1 - (self.darken_timer / 30) }
 
     super.update(self)
 end

@@ -1,6 +1,6 @@
 --- The class that all Battle bullets in Kristal originate from. \
 --- Generic bullets can be spawned into a wave with `Wave:spawnBullet(texture, x, y)` \
---- Files in `scripts/battle/bullets` will also be loaded as bullets and should Extend this class. 
+--- Files in `scripts/battle/bullets` will also be loaded as bullets and should Extend this class.
 --- Extension bullets can be spawned into a wave with `Wave:spawnBullet(id, ...)` - their `id` defaults to their filepath, starting from `scripts/battle/bullets`. Additional arguments `...` are passed into the bullet type's init function.
 ---
 ---@class Bullet : Object
@@ -22,6 +22,8 @@
 ---
 ---@field remove_offscreen  boolean
 ---
+---@field element           string?
+---
 local Bullet, super = Class(Object)
 
 ---@param x         number
@@ -42,7 +44,7 @@ function Bullet:init(x, y, texture)
     end
 
     -- Default collider to half this object's size
-    self.collider = Hitbox(self, self.width/4, self.height/4, self.width/2, self.height/2)
+    self.collider = Hitbox(self, self.width / 4, self.height / 4, self.width / 2, self.height / 2)
 
     -- TP added when you graze this bullet (Also given each frame after the first graze, 30x less at 30FPS)
     self.tp = nil
@@ -62,6 +64,9 @@ function Bullet:init(x, y, texture)
 
     -- Whether to remove this bullet when it goes offscreen (Defaults to `true`)
     self.remove_offscreen = true
+
+    -- This bullet's element
+    self.element = nil
 end
 
 --- Get the graze tension for this bullet.
@@ -96,6 +101,11 @@ function Bullet:shouldSwoon(damage, target, soul)
     return false
 end
 
+---@return string
+function Bullet:getElement()
+    return self.element or (self.attacker and self.attacker.element) or ""
+end
+
 --- *(Override)* Called when the bullet hits the player's soul without invulnerability frames. \
 --- Not calling `super.onDamage()` here will stop the normal damage logic from occurring.
 ---@param soul Soul
@@ -104,7 +114,8 @@ function Bullet:onDamage(soul)
     local damage = self:getDamage()
     if damage > 0 then
         local target = self:getTarget()
-        local battlers = Game.battle:hurt(damage, false, target, self:shouldSwoon(damage, target, soul))
+        local battlers = Game.battle:hurt(damage, self:getElement(), false, target,
+            self:shouldSwoon(damage, target, soul))
         soul.inv_timer = self.inv_timer
         soul:onDamage(self, damage)
         return battlers
@@ -127,7 +138,7 @@ end
 ---@param wave Wave
 function Bullet:onWaveSpawn(wave) end
 
----@param texture?      string|love.Image   The new texture or path to the texture to set on the sprite (Removes the bullet's sprite if undefined) 
+---@param texture?      string|love.Image   The new texture or path to the texture to set on the sprite (Removes the bullet's sprite if undefined)
 ---@param speed?        number              The time between frames of the sprite, in seconds (Defaults to 1/30th second)
 ---@param loop?         boolean             Whether the sprite should continuously loop. (Defaults to `true`)
 ---@param on_finished?  fun(Sprite)         A function that is called when the animation finishes.
